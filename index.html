@@ -79,8 +79,6 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
 .ticks { position: relative; height: 16px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
 .ticks span { position: absolute; transform: translateX(-50%); }
 @media (prefers-reduced-motion: reduce) { .band { transition: none; } }
-.drivers { display: grid; gap: 6px; padding: 0; margin: 0; list-style: none; font-size: 14px; }
-.drivers li { display: grid; grid-template-columns: 52px 1fr; gap: 10px; align-items: baseline; }
 .chip { font-family: var(--mono); font-size: 12px; text-align: center; border-radius: 4px; padding: 1px 0; }
 .chip.up { background: var(--accent-soft); color: var(--accent); }
 .chip.down { background: color-mix(in srgb, var(--down) 14%, transparent); color: var(--down); }
@@ -126,18 +124,18 @@ a.contact { color: var(--accent); font-weight: 500; }
         </div>
         <div class="row2">
           <div class="field">
-            <label for="ventas">Ventas anuales (MXN)</label>
-            <div class="money"><span>$</span><input id="ventas" inputmode="numeric" value="250,000,000"></div>
+            <label for="ventas">Ventas anuales (USD)</label>
+            <div class="money"><span>$</span><input id="ventas" inputmode="numeric" value="13,500,000"></div>
           </div>
           <div class="field">
-            <label for="ebitda">EBITDA anual (MXN)</label>
-            <div class="money"><span>$</span><input id="ebitda" inputmode="numeric" value="30,000,000"></div>
+            <label for="ebitda">EBITDA anual (USD)</label>
+            <div class="money"><span>$</span><input id="ebitda" inputmode="numeric" value="1,600,000"></div>
             <span class="hint">Utilidad de operación + depreciación y amortización.</span>
           </div>
         </div>
         <div class="field">
-          <label for="deuda">Deuda neta (MXN)</label>
-          <div class="money"><span>$</span><input id="deuda" inputmode="numeric" value="12,000,000"></div>
+          <label for="deuda">Deuda neta (USD)</label>
+          <div class="money"><span>$</span><input id="deuda" inputmode="numeric" value="650,000"></div>
           <span class="hint">Créditos bancarios menos caja. Si tienes más caja que deuda, ponlo negativo.</span>
         </div>
         <div class="row2">
@@ -198,16 +196,11 @@ a.contact { color: var(--accent); font-weight: 500; }
         <dt>Valor de la empresa (antes de deuda)</dt><dd id="ev">—</dd>
         <dt>Múltiplo de EBITDA aplicado</dt><dd id="mult">—</dd>
         <dt>Margen EBITDA</dt><dd id="margen">—</dd>
-        <dt>Equivalente en dólares</dt><dd id="usd">—</dd>
       </dl>
       <div class="scale" aria-hidden="true">
         <div class="track"><div class="band" id="band"></div></div>
         <div class="ticks" id="ticks"></div>
         <div class="hint">Múltiplo de EBITDA (veces). La barra es tu rango.</div>
-      </div>
-      <div style="display:grid;gap:8px">
-        <div class="hint">Qué mueve tu múltiplo</div>
-        <ul class="drivers" id="drivers"></ul>
       </div>
     </section>
   </div>
@@ -225,7 +218,7 @@ a.contact { color: var(--accent); font-weight: 500; }
       <span>Escríbenos a <a class="contact" href="mailto:stefan.prum@zimma.com.mx?subject=Valuaci%C3%B3n%20formal">stefan.prum@zimma.com.mx</a></span>
       <span id="copied" hidden>Copiado. Pégalo en tu correo.</span>
     </div>
-    <p class="fine">Valuación indicativa con múltiplos de referencia aproximados para empresas privadas medianas en México. No es una opinión de valor ni una oferta. El tipo de cambio supuesto es de 18.5 pesos por dólar.</p>
+    <p class="fine">Valuación indicativa con múltiplos de referencia aproximados para empresas privadas medianas en México. No es una opinión de valor ni una oferta.</p>
   </section>
 </div>
 
@@ -296,8 +289,9 @@ function prefill(e, v, g) {
   const tag = document.getElementById("sampleTag");
   if (v > 0) {
     const fmt = (n) => Math.round(n).toLocaleString("en-US");
-    document.getElementById("ventas").value = fmt(v);
-    document.getElementById("ebitda").value = fmt(v * MARGEN[Number(giro.value)]);
+    const vUsd = v / USD; // link data carries sales in MXN
+    document.getElementById("ventas").value = fmt(vUsd);
+    document.getElementById("ebitda").value = fmt(vUsd * MARGEN[Number(giro.value)]);
     document.getElementById("deuda").value = "0";
     tag.textContent = "Estimados públicos de " + empresa + ", cámbialos por tus números";
   } else {
@@ -306,20 +300,19 @@ function prefill(e, v, g) {
 }
 
 const num = (el) => Number(String(el.value).replace(/[^0-9.-]/g, "")) || 0;
-const mxn = (v) => {
+const money = (v) => {
   const a = Math.abs(v), s = v < 0 ? "-" : "";
-  if (a >= 1e9) return s + "$" + (a / 1e9).toFixed(2) + " mil M";
-  if (a >= 1e6) return s + "$" + (a / 1e6).toFixed(0) + " M";
-  return s + "$" + Math.round(a).toLocaleString("es-MX");
+  if (a >= 1e9) return s + "US$" + (a / 1e9).toFixed(2) + " mil M";
+  if (a >= 1e6) return s + "US$" + (a / 1e6).toFixed(1) + " M";
+  return s + "US$" + Math.round(a).toLocaleString("en-US");
 };
-const usd = (v) => "US$" + (v / USD / 1e6).toFixed(1) + " M";
-const signed = (x) => (x > 0 ? "+" : x < 0 ? "−" : "±") + Math.abs(x).toFixed(2).replace(/\.?0+$/, "") + "x";
 
 function sizeAdj(ebitda) {
-  if (ebitda < 10e6) return [-1, "EBITDA menor a $10 M: compradores pagan menos por empresas chicas"];
-  if (ebitda < 30e6) return [-0.5, "EBITDA de $10 a 30 M"];
-  if (ebitda < 100e6) return [0, "EBITDA de $30 a 100 M: tamaño atractivo para fondos"];
-  return [0.5, "EBITDA mayor a $100 M"];
+  // USD thresholds
+  if (ebitda < 0.5e6) return [-1, ""];
+  if (ebitda < 1.5e6) return [-0.5, ""];
+  if (ebitda < 5e6) return [0, ""];
+  return [0.5, ""];
 }
 
 function calc() {
@@ -340,37 +333,21 @@ function calc() {
 
   if (ebitda <= 0) {
     $("equity").textContent = "Escribe un EBITDA mayor a cero";
-    ["ev", "mult", "margen", "usd"].forEach((k) => ($(k).textContent = "—"));
+    ["ev", "mult", "margen"].forEach((k) => ($(k).textContent = "—"));
     $("band").style.width = "0";
     return null;
   }
   const evLo = ebitda * mLo, evHi = ebitda * mHi;
   const eqLo = evLo - deuda, eqHi = evHi - deuda;
-  $("equity").innerHTML = mxn(eqLo) + " <small>a</small> " + mxn(eqHi);
-  $("ev").textContent = mxn(evLo) + " – " + mxn(evHi);
+  $("equity").innerHTML = money(eqLo) + " <small>a</small> " + money(eqHi);
+  $("ev").textContent = money(evLo) + " – " + money(evHi);
   $("mult").textContent = mLo.toFixed(1) + "x – " + mHi.toFixed(1) + "x";
   $("margen").textContent = ventas > 0 ? ((ebitda / ventas) * 100).toFixed(1) + "%" : "—";
-  $("usd").textContent = usd(eqLo) + " – " + usd(eqHi);
 
   const pct = (m) => ((Math.min(Math.max(m, AXIS_MIN), AXIS_MAX) - AXIS_MIN) / (AXIS_MAX - AXIS_MIN)) * 100;
   $("band").style.left = pct(mLo) + "%";
   $("band").style.width = Math.max(1, pct(mHi) - pct(mLo)) + "%";
 
-  const ul = $("drivers");
-  ul.replaceChildren();
-  const base = document.createElement("li");
-  base.innerHTML = '<span class="chip flat">' + lo.toFixed(1) + "–" + hi.toFixed(1) + "x</span><span>Punto de partida para " + gName.toLowerCase() + "</span>";
-  ul.append(base);
-  adj.forEach(([a, t]) => {
-    const li = document.createElement("li");
-    const chip = document.createElement("span");
-    chip.className = "chip " + (a > 0 ? "up" : a < 0 ? "down" : "flat");
-    chip.textContent = signed(a);
-    const txt = document.createElement("span");
-    txt.textContent = t;
-    li.append(chip, txt);
-    ul.append(li);
-  });
   return { gName, eqLo, eqHi, mLo, mHi, ventas, ebitda };
 }
 
@@ -399,9 +376,9 @@ $("f").addEventListener("submit", (e) => e.preventDefault());
 $("copy").addEventListener("click", () => {
   const r = calc();
   if (!r) return;
-  const text = "Valuación indicativa de " + (empresa || "mi empresa") + " (" + r.gName + "): " + mxn(r.eqLo) + " a " + mxn(r.eqHi) +
-    " MXN de valor del capital, con un múltiplo de " + r.mLo.toFixed(1) + "x a " + r.mHi.toFixed(1) + "x EBITDA. Ventas " +
-    mxn(r.ventas) + ", EBITDA " + mxn(r.ebitda) + ". Me interesa la valuación formal.";
+  const text = "Valuación indicativa de " + (empresa || "mi empresa") + " (" + r.gName + "): " + money(r.eqLo) + " a " + money(r.eqHi) +
+    " de valor del capital, con un múltiplo de " + r.mLo.toFixed(1) + "x a " + r.mHi.toFixed(1) + "x EBITDA. Ventas " +
+    money(r.ventas) + ", EBITDA " + money(r.ebitda) + ". Me interesa la valuación formal.";
   const done = () => { $("copied").hidden = false; };
   try {
     navigator.clipboard.writeText(text).then(done, () => fallback(text, done));
