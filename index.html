@@ -256,13 +256,38 @@ giro.value = "0";
 // Typical EBITDA margin per giro (same order as GIROS), used only to estimate EBITDA from sales.
 const MARGEN = [0.12, 0.12, 0.07, 0.08, 0.10, 0.12, 0.18, 0.18, 0.20, 0.15, 0.20, 0.22, 0.12, 0.25];
 let empresa = "";
-(function prefill() {
-  let q;
-  try { q = new URLSearchParams(location.search); } catch { return; }
-  empresa = (q.get("e") || "").trim().slice(0, 80);
-  const g = Number(q.get("g"));
-  const v = Number(q.get("v"));
-  if (Number.isInteger(g) && g >= 0 && g < GIROS.length && q.get("g") !== null) giro.value = String(g);
+// Short link: #<code>. The data file is named sha256("id:"+code) and encrypted with sha256("cv1:"+code).
+async function fromCode(code) {
+  const enc = new TextEncoder();
+  const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const id = hex(await crypto.subtle.digest("SHA-256", enc.encode("id:" + code))).slice(0, 20);
+  const res = await fetch("d/" + id + ".json", { cache: "no-store" });
+  if (!res.ok) return null;
+  const { i, c } = await res.json();
+  const b64 = (s) => Uint8Array.from(atob(s), (ch) => ch.charCodeAt(0));
+  const key = await crypto.subtle.importKey("raw", await crypto.subtle.digest("SHA-256", enc.encode("cv1:" + code)), "AES-GCM", false, ["decrypt"]);
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(i) }, key, b64(c));
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+(async function start() {
+  await Promise.resolve(); // let the rest of the script define calc's helpers first
+  const code = location.hash.slice(1);
+  if (/^[A-Za-z0-9]{6,10}$/.test(code)) {
+    try {
+      const p = await fromCode(code);
+      if (p) prefill(p.e, p.v, p.g);
+    } catch {}
+  } else {
+    try {
+      const q = new URLSearchParams(location.search);
+      if (q.get("e")) prefill(q.get("e"), Number(q.get("v")), q.get("g") === null ? null : Number(q.get("g")));
+    } catch {}
+  }
+  calc();
+})();
+function prefill(e, v, g) {
+  empresa = String(e || "").trim().slice(0, 80);
+  if (Number.isInteger(g) && g >= 0 && g < GIROS.length) giro.value = String(g);
   if (!empresa) return;
   document.querySelector("h1").textContent = "Cuánto vale " + empresa + " hoy";
   document.title = "Cuánto vale " + empresa;
@@ -276,7 +301,7 @@ let empresa = "";
   } else {
     tag.textContent = "Cifras de ejemplo, escribe las de " + empresa;
   }
-})();
+}
 
 const num = (el) => Number(String(el.value).replace(/[^0-9.-]/g, "")) || 0;
 const mxn = (v) => {
