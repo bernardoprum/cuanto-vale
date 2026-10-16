@@ -252,6 +252,32 @@ const giro = $("giro");
 GIROS.forEach(([n], i) => giro.add(new Option(n, i)));
 giro.value = "0";
 
+// Personal link: ?e=<empresa>&v=<ventas MXN>&g=<giro index>. Prefills public estimates the prospect can correct.
+// Typical EBITDA margin per giro (same order as GIROS), used only to estimate EBITDA from sales.
+const MARGEN = [0.12, 0.12, 0.07, 0.08, 0.10, 0.12, 0.18, 0.18, 0.20, 0.15, 0.20, 0.22, 0.12, 0.25];
+let empresa = "";
+(function prefill() {
+  let q;
+  try { q = new URLSearchParams(location.search); } catch { return; }
+  empresa = (q.get("e") || "").trim().slice(0, 80);
+  const g = Number(q.get("g"));
+  const v = Number(q.get("v"));
+  if (Number.isInteger(g) && g >= 0 && g < GIROS.length && q.get("g") !== null) giro.value = String(g);
+  if (!empresa) return;
+  document.querySelector("h1").textContent = "Cuánto vale " + empresa + " hoy";
+  document.title = "Cuánto vale " + empresa;
+  const tag = document.getElementById("sampleTag");
+  if (v > 0) {
+    const fmt = (n) => Math.round(n).toLocaleString("en-US");
+    document.getElementById("ventas").value = fmt(v);
+    document.getElementById("ebitda").value = fmt(v * MARGEN[Number(giro.value)]);
+    document.getElementById("deuda").value = "0";
+    tag.textContent = "Estimados públicos de " + empresa + ", cámbialos por tus números";
+  } else {
+    tag.textContent = "Cifras de ejemplo, escribe las de " + empresa;
+  }
+})();
+
 const num = (el) => Number(String(el.value).replace(/[^0-9.-]/g, "")) || 0;
 const mxn = (v) => {
   const a = Math.abs(v), s = v < 0 ? "-" : "";
@@ -346,7 +372,7 @@ $("f").addEventListener("submit", (e) => e.preventDefault());
 $("copy").addEventListener("click", () => {
   const r = calc();
   if (!r) return;
-  const text = "Mi valuación indicativa (" + r.gName + "): " + mxn(r.eqLo) + " a " + mxn(r.eqHi) +
+  const text = "Valuación indicativa de " + (empresa || "mi empresa") + " (" + r.gName + "): " + mxn(r.eqLo) + " a " + mxn(r.eqHi) +
     " MXN de valor del capital, con un múltiplo de " + r.mLo.toFixed(1) + "x a " + r.mHi.toFixed(1) + "x EBITDA. Ventas " +
     mxn(r.ventas) + ", EBITDA " + mxn(r.ebitda) + ". Me interesa la valuación formal.";
   const done = () => { $("copied").hidden = false; };
