@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Cuánto vale tu empresa</title>
+<title>Cuánto vale tu empresa · Zimma</title>
 <meta name="description" content="Calculadora confidencial: rango de valuación de tu empresa por múltiplos de EBITDA.">
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -100,13 +100,14 @@ button.ghost { background: transparent; color: var(--accent); border: 1px solid 
 .fine { font-size: 12.5px; color: var(--muted); max-width: 80ch; }
 #copied { font-size: 13px; color: var(--accent); }
 a.contact { color: var(--accent); font-weight: 500; }
+.brand { color: var(--accent); font-weight: 600; letter-spacing: .12em; }
 </style>
 </head>
 <body>
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Valuación indicativa · confidencial · 3 minutos</div>
+    <div class="eyebrow"><b class="brand">Zimma</b> · Valuación indicativa · confidencial · 3 minutos</div>
     <h1>Cuánto vale tu empresa hoy</h1>
     <p class="lede">Con siete datos de tu negocio te damos un rango de valor por múltiplos de EBITDA, como lo calcularía un comprador. No guardamos nada de lo que escribes aquí.</p>
   </header>
@@ -218,7 +219,7 @@ a.contact { color: var(--accent); font-weight: 500; }
       <span>Escríbenos a <a class="contact" href="mailto:stefan.prum@zimma.com.mx?subject=Valuaci%C3%B3n%20formal">stefan.prum@zimma.com.mx</a></span>
       <span id="copied" hidden>Copiado. Pégalo en tu correo.</span>
     </div>
-    <p class="fine">Valuación indicativa con múltiplos de referencia aproximados para empresas privadas medianas en México. No es una opinión de valor ni una oferta.</p>
+    <p class="fine">Valuación indicativa con múltiplos de referencia aproximados para empresas privadas medianas en México. No es una opinión de valor ni una oferta. © Zimma.</p>
   </section>
 </div>
 
@@ -285,7 +286,7 @@ function prefill(e, v, g) {
   if (Number.isInteger(g) && g >= 0 && g < GIROS.length) giro.value = String(g);
   if (!empresa) return;
   document.querySelector("h1").textContent = "Cuánto vale " + empresa + " hoy";
-  document.title = "Cuánto vale " + empresa;
+  document.title = "Cuánto vale " + empresa + " · Zimma";
   const tag = document.getElementById("sampleTag");
   if (v > 0) {
     const fmt = (n) => Math.round(n).toLocaleString("en-US");
