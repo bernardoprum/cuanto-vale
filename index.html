@@ -272,7 +272,8 @@ async function fromCode(code) {
 }
 (async function start() {
   await Promise.resolve(); // let the rest of the script define calc's helpers first
-  const code = location.hash.slice(1);
+  let code = location.hash.slice(1);
+  try { code = new URLSearchParams(location.search).get("c") || code; } catch {}
   if (/^[A-Za-z0-9]{6,10}$/.test(code)) {
     try {
       const p = await fromCode(code);
