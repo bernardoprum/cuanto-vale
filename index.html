@@ -101,6 +101,11 @@ button.ghost { background: transparent; color: var(--accent); border: 1px solid 
 #copied { font-size: 13px; color: var(--accent); }
 a.contact { color: var(--accent); font-weight: 500; }
 .brand { color: var(--accent); font-weight: 600; letter-spacing: .12em; }
+.gate { display: grid; gap: 14px; }
+.gate input { font-family: var(--body); }
+.out { display: grid; gap: 18px; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.err { font-size: 13px; color: var(--down); }
 </style>
 </head>
 <body>
@@ -109,7 +114,7 @@ a.contact { color: var(--accent); font-weight: 500; }
   <header>
     <div class="eyebrow"><b class="brand">Zimma</b> · Valuación indicativa · confidencial · 3 minutos</div>
     <h1>Cuánto vale tu empresa hoy</h1>
-    <p class="lede">Con siete datos de tu negocio te damos un rango de valor por múltiplos de EBITDA, como lo calcularía un comprador. No guardamos nada de lo que escribes aquí.</p>
+    <p class="lede">Con siete datos de tu negocio te damos un rango de valor por múltiplos de EBITDA, como lo calcularía un comprador. Lo que escribas es confidencial y sólo lo ve el equipo de Zimma.</p>
   </header>
 
   <div class="grid">
@@ -189,7 +194,22 @@ a.contact { color: var(--accent); font-weight: 500; }
 
     <section class="panel result" aria-labelledby="t-res" aria-live="polite">
       <h2 id="t-res">Rango de valor de tu empresa</h2>
-      <div>
+      <form id="gate" class="gate">
+        <p class="hint">Escribe tus números a la izquierda y dinos a quién enviarle el resultado.</p>
+        <div class="row2">
+          <div class="field"><label for="nombre">Nombre</label><input id="nombre" autocomplete="name" required maxlength="80"></div>
+          <div class="field"><label for="empresa">Empresa</label><input id="empresa" autocomplete="organization" required maxlength="100"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="correo">Correo</label><input id="correo" type="email" autocomplete="email" required maxlength="120"></div>
+          <div class="field"><label for="tel">Teléfono <span class="hint">(opcional)</span></label><input id="tel" type="tel" autocomplete="tel" maxlength="30"></div>
+        </div>
+        <div class="field"><label for="cargo">Cargo <span class="hint">(opcional)</span></label><input id="cargo" autocomplete="organization-title" maxlength="80"></div>
+        <input id="web" tabindex="-1" autocomplete="off" aria-hidden="true" class="hp">
+        <button type="submit">Ver mi rango</button>
+        <span class="err" id="gateErr" hidden></span>
+      </form>
+      <div id="out" hidden class="out">
         <div class="hint">Valor del capital (lo que recibirían los socios)</div>
         <div class="big" id="equity">—</div>
       </div>
@@ -203,6 +223,7 @@ a.contact { color: var(--accent); font-weight: 500; }
         <div class="ticks" id="ticks"></div>
         <div class="hint">Múltiplo de EBITDA (veces). La barra es tu rango.</div>
       </div>
+      </div>
     </section>
   </div>
 
@@ -215,9 +236,9 @@ a.contact { color: var(--accent); font-weight: 500; }
       <li><b>Cierre</b><p>Due diligence del comprador elegido, negociación de precio y condiciones, y firma de los contratos finales.</p></li>
     </ol>
     <div class="cta">
-      <button type="button" id="copy">Copiar mi rango para enviarlo</button>
-      <span>Escríbenos a <a class="contact" href="mailto:stefan.prum@zimma.com.mx?subject=Valuaci%C3%B3n%20formal">stefan.prum@zimma.com.mx</a></span>
-      <span id="copied" hidden>Copiado. Pégalo en tu correo.</span>
+      <button type="button" id="formal">Quiero la valuación formal</button>
+      <span>o escríbenos a <a class="contact" href="mailto:stefan.prum@zimma.com.mx?subject=Valuaci%C3%B3n%20formal">stefan.prum@zimma.com.mx</a></span>
+      <span id="copied" hidden>Listo. Te escribimos en menos de un día hábil.</span>
     </div>
     <p class="fine">Valuación indicativa con múltiplos de referencia aproximados para empresas privadas medianas en México. No es una opinión de valor ni una oferta. © Zimma.</p>
   </section>
@@ -247,58 +268,11 @@ const giro = $("giro");
 GIROS.forEach(([n], i) => giro.add(new Option(n, i)));
 giro.value = "0";
 
-// Personal link: ?e=<empresa>&v=<ventas MXN>&g=<giro index>. Prefills public estimates the prospect can correct.
-// Typical EBITDA margin per giro (same order as GIROS), used only to estimate EBITDA from sales.
-const MARGEN = [0.12, 0.12, 0.07, 0.08, 0.10, 0.12, 0.18, 0.18, 0.20, 0.15, 0.20, 0.22, 0.12, 0.25];
-let empresa = "";
-// Short link: #<code>. The data file is named sha256("id:"+code) and encrypted with sha256("cv1:"+code).
-async function fromCode(code) {
-  const enc = new TextEncoder();
-  const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
-  const id = hex(await crypto.subtle.digest("SHA-256", enc.encode("id:" + code))).slice(0, 20);
-  const res = await fetch("d/" + id + ".json", { cache: "no-store" });
-  if (!res.ok) return null;
-  const { i, c } = await res.json();
-  const b64 = (s) => Uint8Array.from(atob(s), (ch) => ch.charCodeAt(0));
-  const key = await crypto.subtle.importKey("raw", await crypto.subtle.digest("SHA-256", enc.encode("cv1:" + code)), "AES-GCM", false, ["decrypt"]);
-  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(i) }, key, b64(c));
-  return JSON.parse(new TextDecoder().decode(plain));
-}
-(async function start() {
-  await Promise.resolve(); // let the rest of the script define calc's helpers first
-  let code = location.hash.slice(1);
-  try { code = new URLSearchParams(location.search).get("c") || code; } catch {}
-  if (/^[A-Za-z0-9]{6,10}$/.test(code)) {
-    try {
-      const p = await fromCode(code);
-      if (p) prefill(p.e, p.v, p.g);
-    } catch {}
-  } else {
-    try {
-      const q = new URLSearchParams(location.search);
-      if (q.get("e")) prefill(q.get("e"), Number(q.get("v")), q.get("g") === null ? null : Number(q.get("g")));
-    } catch {}
-  }
-  calc();
-})();
-function prefill(e, v, g) {
-  empresa = String(e || "").trim().slice(0, 80);
-  if (Number.isInteger(g) && g >= 0 && g < GIROS.length) giro.value = String(g);
-  if (!empresa) return;
-  document.querySelector("h1").textContent = "Cuánto vale " + empresa + " hoy";
-  document.title = "Cuánto vale " + empresa + " · Zimma";
-  const tag = document.getElementById("sampleTag");
-  if (v > 0) {
-    const fmt = (n) => Math.round(n).toLocaleString("en-US");
-    const vUsd = v / USD; // link data carries sales in MXN
-    document.getElementById("ventas").value = fmt(vUsd);
-    document.getElementById("ebitda").value = fmt(vUsd * MARGEN[Number(giro.value)]);
-    document.getElementById("deuda").value = "0";
-    tag.textContent = "Estimados públicos de " + empresa + ", cámbialos por tus números";
-  } else {
-    tag.textContent = "Cifras de ejemplo, escribe las de " + empresa;
-  }
-}
+// Google Apps Script web app bound to the prospects sheet: appends a row to «Respuestas» and emails Stefan.
+const ENDPOINT = "";
+// Optional ?c=<code> from an outreach email: tells the sheet which prospect opened it. The page itself is the same for everyone.
+let ref = "";
+try { ref = (new URLSearchParams(location.search).get("c") || location.hash.slice(1)).replace(/[^A-Za-z0-9]/g, "").slice(0, 12); } catch {}
 
 const num = (el) => Number(String(el.value).replace(/[^0-9.-]/g, "")) || 0;
 const money = (v) => {
@@ -374,23 +348,44 @@ $("f").addEventListener("input", (e) => {
 });
 $("f").addEventListener("submit", (e) => e.preventDefault());
 
-$("copy").addEventListener("click", () => {
+// Fire-and-forget: Apps Script answers with a cross-origin redirect, so no-cors is the only mode that works.
+function send(tipo) {
   const r = calc();
-  if (!r) return;
-  const text = "Valuación indicativa de " + (empresa || "mi empresa") + " (" + r.gName + "): " + money(r.eqLo) + " a " + money(r.eqHi) +
-    " de valor del capital, con un múltiplo de " + r.mLo.toFixed(1) + "x a " + r.mHi.toFixed(1) + "x EBITDA. Ventas " +
-    money(r.ventas) + ", EBITDA " + money(r.ebitda) + ". Me interesa la valuación formal.";
-  const done = () => { $("copied").hidden = false; };
-  try {
-    navigator.clipboard.writeText(text).then(done, () => fallback(text, done));
-  } catch { fallback(text, done); }
-});
-function fallback(text, done) {
-  const ta = document.createElement("textarea");
-  ta.value = text; document.body.append(ta); ta.select();
-  try { document.execCommand("copy"); done(); } catch {}
-  ta.remove();
+  const txt = (id) => { const el = $(id); return el.options[el.selectedIndex].text; };
+  const data = {
+    tipo, ref, web: $("web").value,
+    nombre: $("nombre").value.trim(), empresa: $("empresa").value.trim(), correo: $("correo").value.trim(),
+    telefono: $("tel").value.trim(), cargo: $("cargo").value.trim(),
+    giro: txt("giro"), ventas: num($("ventas")), ebitda: num($("ebitda")), deuda: num($("deuda")),
+    crecimiento: txt("crec"), cliente: txt("cliente"), duenio: txt("duenio"), recurrente: txt("recurrente"), anios: txt("anios"),
+    rango_bajo: r ? Math.round(r.eqLo) : "", rango_alto: r ? Math.round(r.eqHi) : "",
+    multiplo: r ? r.mLo.toFixed(1) + "x – " + r.mHi.toFixed(1) + "x" : "",
+  };
+  if (!ENDPOINT) return Promise.resolve();
+  return fetch(ENDPOINT, { method: "POST", mode: "no-cors", body: new URLSearchParams(data) }).catch(() => {});
 }
+
+$("gate").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const ok = $("nombre").value.trim() && $("empresa").value.trim() && $("correo").checkValidity() && $("correo").value.trim();
+  if (!ok) { $("gateErr").textContent = "Escribe tu nombre, empresa y un correo válido."; $("gateErr").hidden = false; return; }
+  $("gateErr").hidden = true;
+  e.submitter && (e.submitter.disabled = true);
+  await send("calculó");
+  $("gate").hidden = true;
+  $("out").hidden = false;
+});
+$("formal").addEventListener("click", async () => {
+  if (!$("out").hidden) {
+    $("formal").disabled = true;
+    await send("pidió valuación formal");
+    $("copied").hidden = false;
+  } else {
+    $("nombre").focus();
+    $("gateErr").textContent = "Primero escribe tus datos para ver tu rango.";
+    $("gateErr").hidden = false;
+  }
+});
 calc();
 </script>
 </body>
