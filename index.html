@@ -101,6 +101,7 @@ button.ghost { background: transparent; color: var(--accent); border: 1px solid 
 .contact { font-family: var(--mono); font-size: 14px; user-select: all; }
 .fine { font-size: 12.5px; color: var(--muted); max-width: 80ch; }
 #copied { font-size: 13px; color: var(--accent); }
+a.contact { color: var(--accent); font-weight: 500; }
 </style>
 </head>
 <body>
@@ -215,13 +216,13 @@ button.ghost { background: transparent; color: var(--accent); border: 1px solid 
     <h2 id="t-next">Eso vale más o menos. Para negociar necesitas una valuación firmada</h2>
     <p class="lede">Este rango usa múltiplos promedio. Un comprador, un fondo o un banco te van a pedir una valuación hecha sobre tus estados financieros. La hacemos nosotros y la firmamos. Si después decides vender, levantar capital o deuda, te acompañamos en el proceso completo:</p>
     <ol class="steps">
-      <li><b>Valuación formal firmada: $200,000 MXN</b><p>Revisamos dos años cerrados y el parcial de este año, normalizamos tu EBITDA (gastos personales, sueldos fuera de mercado, partidas de una sola vez) y lo comparamos contra transacciones de tu sector y un flujo descontado. Recibes un reporte firmado por nosotros.</p></li>
+      <li><b>Valuación formal firmada</b><p>Revisamos dos años cerrados y el parcial de este año, normalizamos tu EBITDA (gastos personales, sueldos fuera de mercado, partidas de una sola vez) y lo comparamos contra transacciones de tu sector y un flujo descontado. Recibes un reporte firmado por nosotros.</p></li>
       <li><b>Road show</b><p>Preparamos el teaser (perfil anónimo de tu empresa) y el CIM (memorándum de información confidencial). Los posibles compradores firman un NDA antes de ver cualquier dato, y recibimos sus ofertas indicativas (NBO).</p></li>
       <li><b>Cierre</b><p>Due diligence del comprador elegido, negociación de precio y condiciones, y firma de los contratos finales.</p></li>
     </ol>
     <div class="cta">
       <button type="button" id="copy">Copiar mi rango para enviarlo</button>
-      <span>Escríbenos a <span class="contact">[correo de la firma]</span></span>
+      <span>Escríbenos a <a class="contact" href="mailto:stefan.prum@zimma.com.mx?subject=Valuaci%C3%B3n%20formal">stefan.prum@zimma.com.mx</a></span>
       <span id="copied" hidden>Copiado. Pégalo en tu correo.</span>
     </div>
     <p class="fine">Valuación indicativa con múltiplos de referencia aproximados para empresas privadas medianas en México. No es una opinión de valor ni una oferta. El tipo de cambio supuesto es de 18.5 pesos por dólar.</p>
