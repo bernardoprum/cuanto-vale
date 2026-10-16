@@ -269,7 +269,7 @@ GIROS.forEach(([n], i) => giro.add(new Option(n, i)));
 giro.value = "0";
 
 // Google Apps Script web app bound to the prospects sheet: appends a row to «Respuestas» and emails Stefan.
-const ENDPOINT = "";
+const ENDPOINT = "https://script.google.com/macros/s/AKfycbzYnP0mpVnU8EO5KszxTyI4VQA-50fOn8K9zOSC3_-FV68GhRVFcLr6Bn9Wp_7Ebt49/exec";
 // Optional ?c=<code> from an outreach email: tells the sheet which prospect opened it. The page itself is the same for everyone.
 let ref = "";
 try { ref = (new URLSearchParams(location.search).get("c") || location.hash.slice(1)).replace(/[^A-Za-z0-9]/g, "").slice(0, 12); } catch {}
